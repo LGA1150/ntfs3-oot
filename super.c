@@ -542,10 +542,18 @@ static int ntfs_show_options(struct seq_file *m, struct dentry *root)
 
 	if (opts->uid)
 		seq_printf(m, ",uid=%u",
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0)
 			   from_kuid_munged(user_ns, opts->fs_uid));
+#else
+			   from_kuid_munged(&init_user_ns, opts->fs_uid));
+#endif
 	if (opts->gid)
 		seq_printf(m, ",gid=%u",
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0)
 			   from_kgid_munged(user_ns, opts->fs_gid));
+#else
+			   from_kgid_munged(&init_user_ns, opts->fs_gid));
+#endif
 	if (opts->fmask)
 		seq_printf(m, ",fmask=%04o", ~opts->fs_fmask_inv);
 	if (opts->dmask)

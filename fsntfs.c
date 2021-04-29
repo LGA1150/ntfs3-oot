@@ -1620,7 +1620,11 @@ int ntfs_bio_fill_1(struct ntfs_sb_info *sbi, const struct runs_tree *run)
 		lbo = (u64)lcn << cluster_bits;
 		len = (u64)clen << cluster_bits;
 new_bio:
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0)
 		new = ntfs_alloc_bio(BIO_MAX_VECS);
+#else
+		new = ntfs_alloc_bio(BIO_MAX_PAGES);
+#endif
 		if (!new) {
 			err = -ENOMEM;
 			break;

@@ -1176,7 +1176,11 @@ out:
 	return ERR_PTR(err);
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0)
 struct inode *ntfs_create_inode(struct user_namespace *mnt_userns,
+#else
+struct inode *ntfs_create_inode(
+#endif
 				struct inode *dir, struct dentry *dentry,
 				const struct cpu_str *uni, umode_t mode,
 				dev_t dev, const char *symname, u32 size,
@@ -1577,7 +1581,11 @@ struct inode *ntfs_create_inode(struct user_namespace *mnt_userns,
 
 #ifdef CONFIG_NTFS3_FS_POSIX_ACL
 	if (!is_link && (sb->s_flags & SB_POSIXACL)) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0)
 		err = ntfs_init_acl(mnt_userns, inode, dir);
+#else
+		err = ntfs_init_acl(inode, dir);
+#endif
 		if (err)
 			goto out6;
 	} else
