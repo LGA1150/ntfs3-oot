@@ -8,9 +8,13 @@
 #include <linux/blkdev.h>
 #include <linux/buffer_head.h>
 #include <linux/fs.h>
-#include <linux/iversion.h>
 #include <linux/namei.h>
 #include <linux/nls.h>
+#include <linux/version.h>
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 16, 0)
+#include <linux/iversion.h>
+#endif
 
 #include "debug.h"
 #include "ntfs.h"
@@ -500,7 +504,11 @@ out:
  * inode_operations::atomic_open
  */
 static int ntfs_atomic_open(struct inode *dir, struct dentry *dentry,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0)
 			    struct file *file, u32 flags, umode_t mode)
+#else
+			    struct file *file, u32 flags, umode_t mode, int *opened)
+#endif
 {
 	int err;
 	bool excl = !!(flags & O_EXCL);
@@ -544,7 +552,11 @@ static int ntfs_atomic_open(struct inode *dir, struct dentry *dentry,
 		goto out2;
 	}
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0)
 	file->f_mode |= FMODE_CREATED;
+#else
+	*opened |= FILE_CREATED;
+#endif
 
 	/*fnd contains tree's path to insert to*/
 	/* TODO: init_user_ns? */
@@ -555,7 +567,11 @@ static int ntfs_atomic_open(struct inode *dir, struct dentry *dentry,
 #endif
 				  NULL, 0, excl, fnd);
 	err = IS_ERR(inode) ? PTR_ERR(inode)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0)
 			    : finish_open(file, dentry, ntfs_file_open);
+#else
+			    : finish_open(file, dentry, ntfs_file_open, opened);
+#endif
 	dput(d);
 
 out2:

@@ -26,12 +26,16 @@
 #include <linux/buffer_head.h>
 #include <linux/exportfs.h>
 #include <linux/fs.h>
-#include <linux/iversion.h>
 #include <linux/module.h>
 #include <linux/nls.h>
 #include <linux/parser.h>
 #include <linux/seq_file.h>
 #include <linux/statfs.h>
+#include <linux/version.h>
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 16, 0)
+#include <linux/iversion.h>
+#endif
 
 #include "debug.h"
 #include "ntfs.h"

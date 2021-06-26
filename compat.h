@@ -22,3 +22,10 @@
 #define static_assert(expr, ...) __static_assert(expr, ##__VA_ARGS__, #expr)
 #define __static_assert(expr, msg, ...) _Static_assert(expr, msg)
 #endif
+
+/*
+ * Copy from include/linux/overflow.h
+ */
+#ifndef struct_size
+#define struct_size(p, member, n) (sizeof(*(p)) + n * sizeof(*(p)->member))
+#endif
