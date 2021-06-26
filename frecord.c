@@ -10,6 +10,7 @@
 #include <linux/fiemap.h>
 #include <linux/fs.h>
 #include <linux/nls.h>
+#include <linux/version.h>
 #include <linux/vmalloc.h>
 
 #include "debug.h"
@@ -2831,7 +2832,11 @@ static bool ni_update_parent(struct ntfs_inode *ni, struct NTFS_DUP_INFO *dup,
 	struct ntfs_sb_info *sbi = ni->mi.sbi;
 	struct super_block *sb = sbi->sb;
 	bool re_dirty = false;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
 	bool active = sb->s_flags & SB_ACTIVE;
+#else
+	bool active = sb->s_flags & MS_ACTIVE;
+#endif
 	bool upd_parent = ni->ni_flags & NI_FLAG_UPDATE_PARENT;
 
 	if (ni->mi.mrec->flags & RECORD_FLAG_DIR) {
@@ -2951,7 +2956,11 @@ int ni_write_inode(struct inode *inode, int sync, const char *hint)
 	struct rb_node *node, *next;
 	struct NTFS_DUP_INFO dup;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
 	if (is_bad_inode(inode) || sb_rdonly(sb))
+#else
+	if (is_bad_inode(inode) || (sb->s_flags & MS_RDONLY))
+#endif
 		return 0;
 
 	if (!ni_trylock(ni)) {
@@ -3064,7 +3073,11 @@ out:
 		return err;
 	}
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
 	if (re_dirty && (sb->s_flags & SB_ACTIVE))
+#else
+	if (re_dirty && (sb->s_flags & MS_ACTIVE))
+#endif
 		mark_inode_dirty_sync(inode);
 
 	return 0;

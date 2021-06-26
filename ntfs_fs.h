@@ -455,10 +455,14 @@ extern const struct file_operations ntfs_dir_operations;
 /* globals from file.c*/
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0)
 int ntfs_getattr(struct user_namespace *mnt_userns, const struct path *path,
-#else
-int ntfs_getattr(const struct path *path,
-#endif
 		 struct kstat *stat, u32 request_mask, u32 flags);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
+int ntfs_getattr(const struct path *path, struct kstat *stat,
+		 u32 request_mask, u32 flags);
+#else
+int ntfs_getattr(struct vfsmount *mnt, struct dentry *dentry,
+		 struct kstat *stat);
+#endif
 void ntfs_sparse_cluster(struct inode *inode, struct page *page0, CLST vcn,
 			 CLST len);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0)

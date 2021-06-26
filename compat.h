@@ -1,5 +1,13 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 
+#ifndef __bitmap_set
+#define __bitmap_set(a, b, c)	bitmap_set(a, b, c)
+#endif
+
+#ifndef __bitmap_clear
+#define __bitmap_clear(a, b, c)	bitmap_clear(a, b, c)
+#endif
+
 /*
  * Copy from include/linux/compiler_attributes.h
  */

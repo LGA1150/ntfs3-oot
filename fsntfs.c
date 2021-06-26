@@ -9,6 +9,7 @@
 #include <linux/buffer_head.h>
 #include <linux/fs.h>
 #include <linux/nls.h>
+#include <linux/version.h>
 
 #include "debug.h"
 #include "ntfs.h"
@@ -314,7 +315,11 @@ int ntfs_loadlog_and_replay(struct ntfs_inode *ni, struct ntfs_sb_info *sbi)
 		goto out;
 	}
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
 	if (sb_rdonly(sb) || !initialized)
+#else
+	if ((sb->s_flags & MS_RDONLY) || !initialized)
+#endif
 		goto out;
 
 	/* fill LogFile by '-1' if it is initialized */
@@ -940,7 +945,11 @@ int ntfs_set_state(struct ntfs_sb_info *sbi, enum NTFS_DIRTY_FLAGS dirty)
 	 * do not change state if fs already dirty(clear)
 	 * do not change any thing if mounted read only
 	 */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
 	if (sbi->volume.real_dirty || sb_rdonly(sbi->sb))
+#else
+	if (sbi->volume.real_dirty || (sbi->sb->s_flags & MS_RDONLY))
+#endif
 		return 0;
 
 	/* Check cached value */
@@ -1049,7 +1058,11 @@ int ntfs_sb_write(struct super_block *sb, u64 lbo, size_t bytes,
 	u32 op = blocksize - off;
 	struct buffer_head *bh;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
 	if (!wait && (sb->s_flags & SB_SYNCHRONOUS))
+#else
+	if (!wait && (sb->s_flags & MS_SYNCHRONOUS))
+#endif
 		wait = 1;
 
 	for (; bytes; block += 1, off = 0, op = blocksize) {
@@ -1528,7 +1541,11 @@ new_bio:
 			submit_bio(bio);
 		}
 		bio = new;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
 		bio_set_dev(bio, bdev);
+#else
+		bio->bi_bdev = bdev;
+#endif
 		bio->bi_iter.bi_sector = lbo >> 9;
 		bio->bi_opf = op;
 
@@ -1634,7 +1651,11 @@ new_bio:
 			submit_bio(bio);
 		}
 		bio = new;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
 		bio_set_dev(bio, bdev);
+#else
+		bio->bi_bdev = bdev;
+#endif
 		bio->bi_opf = REQ_OP_WRITE;
 		bio->bi_iter.bi_sector = lbo >> 9;
 

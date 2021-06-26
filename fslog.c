@@ -13,6 +13,7 @@
 #include <linux/random.h>
 #include <linux/ratelimit.h>
 #include <linux/slab.h>
+#include <linux/version.h>
 
 #include "debug.h"
 #include "ntfs.h"
@@ -2166,7 +2167,11 @@ file_is_valid:
 	if (page_off1 || tail_page) {
 		struct RECORD_PAGE_HDR *tmp_page;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
 		if (sb_rdonly(log->ni->mi.sbi->sb)) {
+#else
+		if (log->ni->mi.sbi->sb->s_flags & MS_RDONLY) {
+#endif
 			err = -EROFS;
 			goto out;
 		}
@@ -2223,7 +2228,11 @@ file_is_valid:
 	}
 
 	if (part_io_count) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
 		if (sb_rdonly(log->ni->mi.sbi->sb)) {
+#else
+		if (log->ni->mi.sbi->sb->s_flags & MS_RDONLY) {
+#endif
 			err = -EROFS;
 			goto out;
 		}
@@ -3768,7 +3777,11 @@ int log_replay(struct ntfs_inode *ni, bool *initialized)
 	const struct LFS_RECORD_HDR *frh;
 	const struct LOG_REC_HDR *lrh;
 	bool is_mapped;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
 	bool is_ro = sb_rdonly(sbi->sb);
+#else
+	bool is_ro = sbi->sb->s_flags & MS_RDONLY;
+#endif
 	u64 t64;
 	u16 t16;
 	u32 t32;
