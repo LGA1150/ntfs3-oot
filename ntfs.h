@@ -8,6 +8,7 @@
 
 // clang-format off
 #include <linux/version.h>
+#include "compat.h"
 
 /* TODO:
  * - Check 4K mft record and 512 bytes cluster
