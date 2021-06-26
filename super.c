@@ -32,6 +32,7 @@
 #include <linux/seq_file.h>
 #include <linux/statfs.h>
 #include <linux/version.h>
+#include <linux/vmalloc.h>
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 16, 0)
 #include <linux/iversion.h>
@@ -321,14 +322,22 @@ static noinline int ntfs_parse_options(struct super_block *sb, char *options,
 			break;
 		case Opt_acl:
 #ifdef CONFIG_NTFS3_FS_POSIX_ACL
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
 			sb->s_flags |= SB_POSIXACL;
+#else
+			sb->s_flags |= MS_POSIXACL;
+#endif
 			break;
 #else
 			ntfs_err(sb, "support for ACL not compiled in!");
 			return -EINVAL;
 #endif
 		case Opt_noatime:
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
 			sb->s_flags |= SB_NOATIME;
+#else
+			sb->s_flags |= MS_NOATIME;
+#endif
 			break;
 		case Opt_showmeta:
 			opts->showmeta = 1;
@@ -393,7 +402,11 @@ static int ntfs_remount(struct super_block *sb, int *flags, char *data)
 	if (err)
 		goto restore_opts;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
 	ro_rw = sb_rdonly(sb) && !(*flags & SB_RDONLY);
+#else
+	ro_rw = (sb->s_flags & MS_RDONLY) && !(*flags & MS_RDONLY);
+#endif
 	if (ro_rw && (sbi->flags & NTFS_FLAGS_NEED_REPLAY)) {
 		ntfs_warn(
 			sb,
@@ -413,8 +426,13 @@ static int ntfs_remount(struct super_block *sb, int *flags, char *data)
 
 	clear_mount_options(&old_opts);
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
 	*flags = (*flags & ~SB_LAZYTIME) | (sb->s_flags & SB_LAZYTIME) |
 		 SB_NODIRATIME | SB_NOATIME;
+#else
+	*flags = (*flags & ~MS_LAZYTIME) | (sb->s_flags & MS_LAZYTIME) |
+		 MS_NODIRATIME | MS_NOATIME;
+#endif
 	ntfs_info(sb, "re-mounted. Opts: %s", orig_data);
 	err = 0;
 	goto out;
@@ -582,9 +600,17 @@ static int ntfs_show_options(struct seq_file *m, struct dentry *root)
 		seq_puts(m, ",no_acs_rules");
 	if (opts->prealloc)
 		seq_puts(m, ",prealloc");
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
 	if (sb->s_flags & SB_POSIXACL)
+#else
+	if (sb->s_flags & MS_POSIXACL)
+#endif
 		seq_puts(m, ",acl");
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
 	if (sb->s_flags & SB_NOATIME)
+#else
+	if (sb->s_flags & MS_NOATIME)
+#endif
 		seq_puts(m, ",noatime");
 
 	return 0;
@@ -838,7 +864,11 @@ static int ntfs_init_from_boot(struct super_block *sb, u32 sector_size,
 			sb,
 			"RAW NTFS volume: Filesystem size %u.%02u Gb > volume size %u.%02u Gb. Mount in read-only",
 			gb, mb, gb0, mb0);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
 		sb->s_flags |= SB_RDONLY;
+#else
+		sb->s_flags |= MS_RDONLY;
+#endif
 	}
 
 	clusters = sbi->volume.size >> sbi->cluster_bits;
@@ -930,7 +960,11 @@ static int ntfs_fill_super(struct super_block *sb, void *data, int silent)
 
 	sb->s_fs_info = sbi;
 	sbi->sb = sb;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
 	sb->s_flags |= SB_NODIRATIME;
+#else
+	sb->s_flags |= MS_NODIRATIME;
+#endif
 	sb->s_magic = 0x7366746e; // "ntfs"
 	sb->s_op = &ntfs_sops;
 	sb->s_export_op = &ntfs_export_ops;
@@ -1062,7 +1096,11 @@ static int ntfs_fill_super(struct super_block *sb, void *data, int silent)
 	iput(inode);
 	inode = NULL;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
 	is_ro = sb_rdonly(sbi->sb);
+#else
+	is_ro = sbi->sb->s_flags & MS_RDONLY;
+#endif
 
 	if (sbi->flags & NTFS_FLAGS_NEED_REPLAY) {
 		if (!is_ro) {
@@ -1256,7 +1294,13 @@ static int ntfs_fill_super(struct super_block *sb, void *data, int silent)
 		goto out;
 	}
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 12, 0)
 	sbi->upcase = upcase = ntfs_vmalloc(0x10000 * sizeof(short));
+#else
+	sbi->upcase = upcase = kmalloc(0x10000 * sizeof(short), GFP_KERNEL | __GFP_NOWARN);
+	if (!upcase)
+		sbi->upcase = upcase = vmalloc(0x10000 * sizeof(short));
+#endif
 	if (!upcase) {
 		err = -ENOMEM;
 		goto out;
@@ -1358,7 +1402,11 @@ void ntfs_unmap_meta(struct super_block *sb, CLST lcn, CLST len)
 	sector_t devblock = (u64)lcn * sbi->blocks_per_cluster;
 	unsigned long blocks = (u64)len * sbi->blocks_per_cluster;
 	unsigned long cnt = 0;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
 	unsigned long limit = global_zone_page_state(NR_FREE_PAGES)
+#else
+	unsigned long limit = global_page_state(NR_FREE_PAGES)
+#endif
 			      << (PAGE_SHIFT - sb->s_blocksize_bits);
 
 	if (limit >= 0x2000)
@@ -1369,7 +1417,11 @@ void ntfs_unmap_meta(struct super_block *sb, CLST lcn, CLST len)
 		limit >>= 1;
 
 	while (blocks--) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)
 		clean_bdev_aliases(bdev, devblock++, 1);
+#else
+		unmap_underlying_metadata(bdev, devblock++);
+#endif
 		if (cnt++ >= limit) {
 			sync_blockdev(bdev);
 			cnt = 0;

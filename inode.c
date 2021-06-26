@@ -1600,7 +1600,11 @@ struct inode *ntfs_create_inode(
 	inode->i_mode = mode;
 
 #ifdef CONFIG_NTFS3_FS_POSIX_ACL
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
 	if (!is_link && (sb->s_flags & SB_POSIXACL)) {
+#else
+	if (!is_link && (sb->s_flags & MS_POSIXACL)) {
+#endif
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0)
 		err = ntfs_init_acl(mnt_userns, inode, dir);
 #else

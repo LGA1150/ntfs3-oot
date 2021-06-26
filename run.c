@@ -10,6 +10,8 @@
 #include <linux/buffer_head.h>
 #include <linux/fs.h>
 #include <linux/nls.h>
+#include <linux/version.h>
+#include <linux/vmalloc.h>
 
 #include "debug.h"
 #include "ntfs.h"
@@ -387,7 +389,13 @@ requires_new_range:
 
 			WARN_ON(!is_mft && bytes > NTFS3_RUN_MAX_BYTES);
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 12, 0)
 			new_ptr = ntfs_vmalloc(bytes);
+#else
+			new_ptr = kmalloc(bytes, GFP_KERNEL | __GFP_NOWARN);
+			if (!new_ptr)
+				new_ptr = vmalloc(bytes);
+#endif
 
 			if (!new_ptr)
 				return false;
