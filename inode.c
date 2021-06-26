@@ -8,13 +8,16 @@
 #include <linux/blkdev.h>
 #include <linux/buffer_head.h>
 #include <linux/fs.h>
-#include <linux/iversion.h>
 #include <linux/mpage.h>
 #include <linux/namei.h>
 #include <linux/nls.h>
 #include <linux/uio.h>
 #include <linux/version.h>
 #include <linux/writeback.h>
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 16, 0)
+#include <linux/iversion.h>
+#endif
 
 #include "debug.h"
 #include "ntfs.h"
@@ -1646,7 +1649,12 @@ out4:
 	clear_rec_inuse(rec);
 	clear_nlink(inode);
 	ni->mi.dirty = false;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0)
 	discard_new_inode(inode);
+#else
+	unlock_new_inode(inode);
+	iput(inode);
+#endif
 out3:
 	ntfs_mark_rec_free(sbi, ino);
 

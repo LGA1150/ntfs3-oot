@@ -12,6 +12,7 @@
 #include <linux/fiemap.h>
 #include <linux/msdos_fs.h> /* FAT_IOCTL_XXX */
 #include <linux/nls.h>
+#include <linux/uio.h>
 
 #include "debug.h"
 #include "ntfs.h"
